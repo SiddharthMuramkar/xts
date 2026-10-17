@@ -1,217 +1,304 @@
-# FastAPI + PostgreSQL + Alembic Backend Template
+<a name="readme-top"></a>
 
-A clean, minimal backend template: **FastAPI** for the API, **PostgreSQL** (with the
-`pgvector` extension) for storage, and **Alembic** for schema migrations. The whole
-stack runs through Docker Compose, and a browser-based database UI (Adminer) is
-included for inspecting the data.
+<div align="center">
 
-It is intentionally a **starting point, not a finished app**: there are currently
-**no application tables** and no domain models. You get the plumbing — config,
-database session, migrations, Docker, and health/readiness endpoints — ready to build
-on. Add your own SQLAlchemy models, Pydantic schemas, and routers on top.
+<img src="docs/assets/banner.svg" width="100%" alt="FastAPI + PostgreSQL backend template: Alembic migrations, pgvector, Docker Compose and health checks">
 
-## Tech stack
+<br>
+<br>
 
-- **FastAPI** — web framework / REST API
-- **PostgreSQL** (`pgvector/pgvector:pg16`) — database, with `pgvector` enabled
-- **SQLAlchemy** — ORM / session management
-- **Alembic** — database migrations
-- **Docker Compose** — runs the entire stack
-- **Adminer** — browser-based database UI
-- **Pytest** — test suite
+[![Python 3.14](https://img.shields.io/badge/Python_3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL_16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy_2.0-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
+[![Alembic](https://img.shields.io/badge/Alembic-6E7781?style=for-the-badge)](https://alembic.sqlalchemy.org/)
+[![Pydantic v2](https://img.shields.io/badge/Pydantic_v2-E92063?style=for-the-badge&logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
+[![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org/)
 
-## What's included
+[![License](https://img.shields.io/github/license/SiddharthMuramkar/xts?style=flat-square&color=blue)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/SiddharthMuramkar/xts?style=flat-square)](https://github.com/SiddharthMuramkar/xts/commits/main)
+[![Open PRs](https://img.shields.io/github/issues-pr/SiddharthMuramkar/xts?style=flat-square)](https://github.com/SiddharthMuramkar/xts/pulls)
+[![Issues](https://img.shields.io/github/issues/SiddharthMuramkar/xts?style=flat-square)](https://github.com/SiddharthMuramkar/xts/issues)
+[![Contributors](https://img.shields.io/github/contributors/SiddharthMuramkar/xts?style=flat-square)](https://github.com/SiddharthMuramkar/xts/graphs/contributors)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](#-contributing)
+[![Code style: black](https://img.shields.io/badge/code_style-black-000000?style=flat-square)](https://github.com/psf/black)
 
-- `GET /health` — liveness check (the app is up; does not touch the database).
-- `GET /health/ready` — readiness check (verifies DB connectivity with `SELECT 1`;
-  returns 503 if the database is unreachable).
-- A single **base Alembic migration** that enables the `pgvector` extension
-  (`CREATE EXTENSION IF NOT EXISTS vector;`). It creates **no tables** — new schema
-  migrations chain off this base.
-- Reusable infrastructure in `src/` (`database.py`, `deps.py`, `config.py`) for when
-  you add models and routers.
+**A clean, minimal FastAPI + PostgreSQL + Alembic starter.**<br>
+Config, database sessions, migrations, Docker Compose and health checks are wired up. You bring the models.
 
-## Prerequisites
+[🚀 Quick start](#-quick-start) · [✨ What's inside](#-whats-inside) · [🧰 Development](#-development) · [🧭 How it fits together](#-how-it-fits-together) · [🤝 Contributing](#-contributing)
 
-You only need:
+</div>
 
-- **Docker** — <https://docs.docker.com/get-docker/>
-- **Docker Compose** — bundled with Docker Desktop
-- **Git** *(optional)* — only if you clone the repository
+---
 
-You do **not** need Python or PostgreSQL installed on your machine. Everything runs
-inside Docker.
+> [!NOTE]
+> **This is a starting point, not a finished app.** There are no application tables or domain models yet. You get the plumbing and add your own SQLAlchemy models, Pydantic schemas and routers on top.
 
-## Environment setup
+## ✨ What's inside
 
-The project is configured through a `.env` file. Copy the provided template:
+- ⚡ **FastAPI app** with interactive Swagger docs at `/docs` (and ReDoc at `/redoc`)
+- 🐘 **PostgreSQL 16** with the **pgvector** extension enabled by the base migration, ready for embeddings later (no vector columns yet)
+- 🔁 **Alembic migrations** that run automatically every time the API container starts
+- 🐳 **One-command Docker Compose stack**: API + Postgres + Adminer (a browser DB UI), all bound to `127.0.0.1`
+- 🩺 **Health checks**: liveness and readiness endpoints, and the API container uses `/health` as its own Docker healthcheck
+- 🧪 **pytest suite** on in-memory SQLite, so tests never need a running database
+- 🔧 **Typed settings** via pydantic-settings, loaded from `.env`
+- 🎨 **black** formatting and a **Makefile** with shortcuts for common tasks
 
-```bash
-# (optional) clone the repository
-git clone <your-repo-url>
-cd <your-repo>
+### Endpoints
 
-# create your local environment file
-cp .env.example .env
-```
+| Method | Path | What it does |
+| :---: | --- | --- |
+| ![GET](https://img.shields.io/badge/GET-61AFFE?style=flat-square) | `/health` | **Liveness.** The process is up. Doesn't touch the database. Returns `{"status": "ok"}` |
+| ![GET](https://img.shields.io/badge/GET-61AFFE?style=flat-square) | `/health/ready` | **Readiness.** Runs `SELECT 1`. Returns `{"status": "ready"}`, or **503** if the database is unreachable |
+| ![GET](https://img.shields.io/badge/GET-61AFFE?style=flat-square) | `/docs` | Swagger UI, generated by FastAPI from your routes |
 
-The defaults work out of the box. Before using this anywhere real, change
-`POSTGRES_PASSWORD` (and the matching password inside `SQLALCHEMY_DATABASE_URL`).
+## 🚀 Quick start
 
-> `.env` is gitignored and must never be committed.
-
-## Running the project
-
-Build the images and start everything:
+All you need is **[Docker](https://docs.docker.com/get-docker/)** with Compose (bundled with Docker Desktop). No local Python or PostgreSQL required.
 
 ```bash
-docker compose up --build
+git clone https://github.com/SiddharthMuramkar/xts.git
+cd xts
+cp .env.example .env          # the defaults work out of the box
+docker compose up --build     # add -d to run in the background
 ```
 
-To run it in the background (detached), add `-d`:
+On startup the API waits for Postgres, applies all migrations, then starts serving. Check that it's alive:
 
 ```bash
-docker compose up -d --build
+curl http://localhost:8000/health         # {"status":"ok"}
+curl http://localhost:8000/health/ready   # {"status":"ready"}
 ```
 
-On startup the API container automatically waits for PostgreSQL, applies all Alembic
-migrations (which enables `pgvector`), and then starts the server — so the database is
-always ready before the API accepts requests.
+| | Service | URL |
+| :---: | --- | --- |
+| 📖 | Swagger UI | <http://localhost:8000/docs> |
+| 💓 | Liveness | <http://localhost:8000/health> |
+| ✅ | Readiness | <http://localhost:8000/health/ready> |
+| 🗄️ | Adminer (database UI) | <http://localhost:8080> |
 
-## Fresh start (reset the database from scratch)
+> [!WARNING]
+> Before using this anywhere real, change `POSTGRES_PASSWORD` in `.env` **and** the matching password inside `SQLALCHEMY_DATABASE_URL`. `.env` is gitignored, so never commit it.
 
-To wipe the database volume and rebuild from an empty database:
+<details>
+<summary><b>🔧 Environment variables</b></summary>
+
+<br>
+
+Copy `.env.example` to `.env` and adjust as needed:
+
+| Variable | Default | Used by | Purpose |
+| --- | --- | --- | --- |
+| `SQLALCHEMY_DATABASE_URL` | `postgresql://postgres:change-me@db:5432/fastapi` | API + Alembic | The only setting the app reads. Host is `db` inside Docker, `localhost` for host-based runs |
+| `POSTGRES_USER` | `postgres` | db | Database user |
+| `POSTGRES_PASSWORD` | `change-me` | db | Must match the password in `SQLALCHEMY_DATABASE_URL` |
+| `POSTGRES_DB` | `fastapi` | db | Database name |
+| `API_PORT` | `8000` | Compose | Host port for the API |
+| `POSTGRES_PORT` | `5432` | Compose | Host port for Postgres |
+| `ADMINER_PORT` | `8080` | Compose | Host port for Adminer |
+
+All ports are published on `127.0.0.1` only. Add new settings as typed fields on `Settings` in [`src/config.py`](src/config.py).
+
+</details>
+
+<details>
+<summary><b>🗄️ Logging into Adminer</b></summary>
+
+<br>
+
+Open <http://localhost:8080> and use:
+
+| Setting | Value |
+| --- | --- |
+| System | PostgreSQL |
+| Server | `db` |
+| Username | value of `POSTGRES_USER` (default `postgres`) |
+| Password | value of `POSTGRES_PASSWORD` |
+| Database | value of `POSTGRES_DB` (default `fastapi`) |
+
+**Why `db` and not `localhost`?** Adminer runs in its own container, so "localhost" there means the Adminer container itself, not your machine and not the database. Adminer and PostgreSQL share the same Compose network, so the database is reached by its service name, `db`, on its internal port `5432`.
+
+</details>
+
+<details>
+<summary><b>♻️ Fresh start (wipe the database)</b></summary>
+
+<br>
 
 ```bash
 docker compose down -v          # stop the stack AND delete the postgres_data volume
-docker compose up -d --build    # entrypoint runs `alembic upgrade head` on boot
-docker compose logs -f api      # (optional) watch the migration apply
+docker compose up -d --build    # migrations re-run on boot
+docker compose logs -f api      # (optional) watch them apply
 ```
 
-After this the database contains only the `pgvector` extension and Alembic's
-`alembic_version` bookkeeping table — **no application tables**.
+**⚠️ `down -v` permanently deletes the Postgres volume and everything in it.** Afterwards the database holds only the `pgvector` extension and Alembic's `alembic_version` table.
 
-## Accessing the app
+</details>
 
-Once the stack is running:
+## 🧰 Development
 
-| What | URL |
+> [!IMPORTANT]
+> The `api` container runs a **copy of the code baked in at build time**. There is no bind mount and no hot reload. After changing anything in `src/`, `tests/` or `alembic/`, rebuild with `docker compose up --build`, or add `--build` to `docker compose run`.
+
+```bash
+docker compose up --build                     # start the stack        (make up)
+docker compose logs -f api                    # follow API logs        (make logs)
+docker compose down                           # stop the stack         (make down)
+docker compose run --build --rm api pytest    # run the test suite
+```
+
+### Migrations
+
+Migrations live in [`alembic/versions/`](alembic/versions) and are applied automatically on every `api` container start (see [`entrypoint.sh`](entrypoint.sh)). The single base migration, `c3e7f1a2b4d6`, only enables `pgvector`. New migrations chain off it.
+
+After changing `src/models.py`, and with the stack running so the database is up to date, generate a migration:
+
+```bash
+docker compose run --rm -v "$(pwd):/app" api \
+  alembic revision --autogenerate -m "add items table"
+```
+
+The `-v "$(pwd):/app"` mount does two jobs: Alembic sees your *current* models, and the new file is written back to your machine. Without it, the file is created inside the throwaway container and deleted by `--rm`. On Linux the new file is owned by root, so run `sudo chown "$USER" alembic/versions/*.py` to fix that.
+
+Apply it by restarting with `docker compose up --build`, or run it directly:
+
+```bash
+docker compose run --build --rm api alembic upgrade head
+```
+
+### Tests
+
+```bash
+docker compose run --build --rm api pytest                                            # everything
+docker compose run --build --rm api pytest tests/test_health.py::test_health_readiness   # one test
+```
+
+The suite uses an **in-memory SQLite** database (see [`tests/conftest.py`](tests/conftest.py)), so it never touches your Postgres data. Postgres-only behaviour such as `pgvector` is not exercised by these tests.
+
+<details>
+<summary><b>💻 Working on the host instead (Makefile)</b></summary>
+
+<br>
+
+Docker is the documented path, but the Makefile runs the same tasks directly on your machine. You need Python 3.14 (ideally in a virtualenv), and the database URL must point at `localhost` instead of `db`:
+
+```bash
+docker compose up -d db    # just Postgres, published on 127.0.0.1:5432
+export SQLALCHEMY_DATABASE_URL=postgresql://postgres:change-me@localhost:5432/fastapi
+make install               # pip install -r requirements.txt
+make migrate               # alembic upgrade head
+make dev                   # uvicorn with autoreload on :8000
+```
+
+The exported variable takes priority over `.env`, and Alembic reads *only* the environment variable, so the `export` is required.
+
+| Target | What it does |
 | --- | --- |
-| API root | <http://localhost:8000> |
-| Interactive API docs (Swagger) | <http://localhost:8000/docs> |
-| Liveness check | <http://localhost:8000/health> |
-| Readiness check | <http://localhost:8000/health/ready> |
-| Database UI (Adminer) | <http://localhost:8080> |
+| `make install` | Install runtime + dev dependencies |
+| `make dev` | Run the API locally with autoreload |
+| `make test` | Run the pytest suite |
+| `make fmt` | Format `src`, `alembic` and `tests` with black |
+| `make migrate` | Apply all migrations (`alembic upgrade head`) |
+| `make revision m="msg"` | Autogenerate a new migration |
+| `make up` / `make down` / `make logs` | Docker Compose shortcuts |
+| `make remove` | Stop and force-remove the stack's containers |
 
-The host ports are configurable via `API_PORT` and `ADMINER_PORT` in `.env`.
+</details>
 
-## Database UI
+## 🧭 How it fits together
 
-- Start services:
-
-  ```bash
-  docker compose up -d
-  ```
-
-- Open Adminer:
-
-  <http://localhost:8080>
-
-- In Adminer, use:
-
-  | Setting | Value |
-  | --- | --- |
-  | System | PostgreSQL |
-  | Server | `db` |
-  | Username | value of `POSTGRES_USER` (default `postgres`) |
-  | Password | value of `POSTGRES_PASSWORD` |
-  | Database | value of `POSTGRES_DB` (default `fastapi`) |
-
-- **Important:** inside Adminer the **Server** must be `db`, not `localhost`.
-  Adminer runs in its own container, so "localhost" there means the Adminer
-  container itself — not your machine and not the database. Because Adminer and
-  PostgreSQL share the same Docker Compose network, the database is reached by its
-  Compose service name, `db`, on its internal port `5432`.
-
-## Database migrations
-
-Migrations are managed with **Alembic** and run **automatically** every time the API
-container starts (see [`entrypoint.sh`](entrypoint.sh)), so you normally don't need to
-do anything.
-
-To apply migrations manually:
-
-```bash
-docker compose run --rm api alembic upgrade head
+```mermaid
+flowchart LR
+    you(["💻 You<br>browser · curl"])
+    subgraph compose ["🐳 Docker Compose · bound to 127.0.0.1"]
+        api["⚡ api<br>FastAPI + Uvicorn<br>:8000"]
+        adminer["🗄️ adminer<br>database UI<br>:8080"]
+        db[("🐘 db<br>PostgreSQL 16 + pgvector<br>:5432")]
+    end
+    you -->|HTTP| api
+    you -->|HTTP| adminer
+    api -->|SQLAlchemy| db
+    adminer -->|SQL| db
 ```
 
-To create a new migration after adding models:
+Inside the app, a request flows through a router, which gets a database session injected from `deps.py`:
 
-```bash
-docker compose run --rm api alembic revision --autogenerate -m "describe change"
+```mermaid
+flowchart LR
+    main["main.py<br>creates the app"] --> router["routers/*.py<br>your endpoints"]
+    router -->|"db: db_dependency"| deps["deps.py"]
+    deps -->|"Depends(get_db)"| database["database.py<br>engine · SessionLocal"]
+    config["config.py<br>settings from .env"] -.-> database
+    database --> pg[("PostgreSQL")]
 ```
 
-## Running tests
+**On `docker compose up`:**
 
-The test suite runs inside the API container:
+1. Compose starts `db` and waits until its `pg_isready` healthcheck passes.
+2. The `api` container's [`entrypoint.sh`](entrypoint.sh) retries `SELECT 1` until Postgres answers.
+3. It runs `alembic upgrade head`.
+4. It starts Uvicorn on port 8000.
 
-```bash
-docker compose run --rm api pytest
-```
-
-The tests use an in-memory SQLite database, so they never touch your PostgreSQL data.
-The current suite covers `/health` and `/health/ready`.
-
-## Useful Docker commands
-
-```bash
-# Build and start in the background
-docker compose up -d --build
-
-# Follow logs for a service
-docker compose logs -f api
-docker compose logs -f db
-
-# Stop the stack
-docker compose down
-
-# Stop the stack AND delete the database volume (wipes all data)
-docker compose down -v
-```
-
-> `docker compose down -v` permanently deletes the PostgreSQL volume and everything
-> stored in it.
-
-## Project structure
+### Project structure
 
 ```text
 .
-├── src/                  # Application code
-│   ├── main.py           # FastAPI app; includes the health router
+├── src/                   # application code (the import root: runs with --app-dir src)
+│   ├── main.py            # creates the FastAPI app and includes routers
 │   ├── routers/
-│   │   ├── __init__.py
-│   │   └── health.py     # GET /health and GET /health/ready
-│   ├── models.py         # SQLAlchemy Base (no application tables yet)
-│   ├── schemas.py        # Pydantic schemas (empty)
-│   ├── database.py       # engine / SessionLocal / get_db
-│   ├── deps.py           # shared FastAPI dependencies
-│   └── config.py         # settings (pydantic-settings)
-├── alembic/              # Database migrations (base migration enables pgvector)
-├── tests/                # Pytest suite (health checks)
-├── docker-compose.yml    # Defines the api, db, and adminer services
-├── Dockerfile            # API image
-├── entrypoint.sh         # Waits for the DB, migrates, then starts the API
-└── .env.example          # Template for your .env
+│   │   └── health.py      # GET /health and GET /health/ready
+│   ├── models.py          # SQLAlchemy models (re-exports Base; no tables yet)
+│   ├── schemas.py         # Pydantic request/response schemas (empty)
+│   ├── database.py        # engine, SessionLocal, Base, get_db
+│   ├── deps.py            # shared dependencies (db_dependency)
+│   └── config.py          # typed settings (pydantic-settings)
+├── alembic/               # migrations; the base revision enables pgvector
+├── tests/                 # pytest suite (in-memory SQLite)
+├── docs/assets/           # images for this README
+├── docker-compose.yml     # api + db + adminer
+├── Dockerfile             # API image (python:3.14-slim)
+├── entrypoint.sh          # wait for DB → migrate → start the API
+├── Makefile               # developer shortcuts
+├── requirements.txt       # pinned runtime + dev dependencies
+└── .env.example           # copy to .env
 ```
 
-## Development notes
+## 🧩 Building on it
 
-- This project is intended to be run through **Docker Compose** — that is the source
-  of truth for building and running the backend.
-- Host-based setups (virtualenvs, local `pip install`, running `uvicorn` directly) are
-  intentionally **not** the documented path. Use Docker.
-- Everything you need — running the app, applying migrations, and running tests — is
-  available through `docker compose`.
-- To build a real feature: add ORM models to `src/models.py`, schemas to
-  `src/schemas.py`, a router under `src/routers/` (include it in `src/main.py`), then
-  autogenerate a migration that chains off the pgvector base.
+1. **Model**: add a SQLAlchemy model to [`src/models.py`](src/models.py).
+2. **Schemas**: add Pydantic request/response models to [`src/schemas.py`](src/schemas.py).
+3. **Router**: create `src/routers/<name>.py`, inject a session with `db: db_dependency`, and register it with `app.include_router(...)` in [`src/main.py`](src/main.py).
+4. **Migration**: generate one as shown in [Migrations](#migrations). It chains off the pgvector base.
+5. **Tests**: add tests under `tests/` using the `client` fixture from [`tests/conftest.py`](tests/conftest.py).
+
+**Heads-up: imports are flat.** The app runs with `--app-dir src`, so write `from database import Base` and `from deps import db_dependency`, never `from src.database import ...`. `pytest.ini` and `alembic.ini` put `src` on the import path the same way.
+
+## 🤝 Contributing
+
+Contributions are welcome! For bigger changes, please open an issue first to discuss what you'd like to change.
+
+1. Fork the repo and create a branch: `git checkout -b feat/my-change`
+2. Format with black (`make fmt`) and make sure the tests pass
+3. Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) style (`feat: ...`, `fix: ...`, `docs: ...`)
+4. Open a pull request 🎉
+
+<a href="https://github.com/SiddharthMuramkar/xts/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=SiddharthMuramkar/xts" alt="Contributors">
+</a>
+
+## 📄 License
+
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**[⬆ Back to top](#readme-top)**
+
+Built with ❤️ by [@SiddharthMuramkar](https://github.com/SiddharthMuramkar). If this template saved you time, consider leaving a ⭐
+
+</div>
