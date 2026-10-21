@@ -71,3 +71,17 @@ Copy `.env.example` → `.env` (gitignored). Key vars: `SQLALCHEMY_DATABASE_URL`
 ## Adding a feature
 
 Add ORM models to `src/models.py`, schemas to `src/schemas.py`, a router under `src/routers/` (and `app.include_router(...)` it in `src/main.py`), then autogenerate a migration that chains off the `pgvector` base. Keep imports flat (see above).
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues on `SiddharthMuramkar/xts`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the five default triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
