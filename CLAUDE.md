@@ -26,7 +26,9 @@ The `Makefile` targets run on the **host** (they need local Python/Postgres and 
 
 Run a single test: `pytest tests/test_health.py::test_health_readiness`.
 
-The README treats **Docker Compose as the source of truth** for running the app; host-based runs are possible (via the Makefile) but not the documented path. To run anything inside the container instead, use `docker compose run --rm api <cmd>` — e.g. `docker compose run --rm api pytest` or `docker compose run --rm api alembic upgrade head`. This works because dev/test tools ship in the same image (see below).
+**Docker Compose is the source of truth** for running the app; the Makefile is the host-based alternative. To run anything inside the container instead, use `docker compose run --rm api <cmd>` — e.g. `docker compose run --rm api pytest` or `docker compose run --rm api alembic upgrade head`. This works because dev/test tools ship in the same image (see below).
+
+The api image bakes in the code (no bind mount, no reload): add `--build` after changing `src/`, `tests/` or `alembic/`, e.g. `docker compose run --build --rm api pytest`. Autogenerate migrations with the repo mounted so the file lands on the host: `docker compose run --rm -v "$(pwd):/app" api alembic revision --autogenerate -m "msg"`.
 
 There is no linter or type-checker configured — `black` is the only style tool.
 
@@ -57,7 +59,7 @@ Request flow: `main.py` creates the app and includes the health router → route
 ## Database & migrations
 
 - Migrations live in `alembic/versions/`. `env.py` reads the DB URL from `SQLALCHEMY_DATABASE_URL` (falling back to `alembic.ini`'s empty `sqlalchemy.url`, and raising if neither is set), and uses `models.Base.metadata` as the autogenerate target.
-- There is a single **base migration** `c3e7f1a2b4d6` (`down_revision = None`) whose only job is `CREATE EXTENSION IF NOT EXISTS vector;`. The `pgvector` extension is provisioned ahead of future semantic-search work; no vector column exists yet. The Docker DB image is `pgvector/pgvector:pg16`. New migrations should chain off this base.
+- There is a single **base migration** `c3e7f1a2b4d6` (`down_revision = None`) whose only job is `CREATE EXTENSION IF NOT EXISTS vector;`. The `pgvector` extension is provisioned ahead of future semantic-search work; no vector column exists yet, and the `pgvector` Python package is not installed (add it to `requirements.txt` with the first vector column). The Docker DB image is `pgvector/pgvector:pg16`. New migrations should chain off this base.
 - In Docker, `entrypoint.sh` waits for Postgres, runs `alembic upgrade head`, then starts uvicorn — migrations are applied automatically on container start.
 
 ## Testing
@@ -71,3 +73,17 @@ Copy `.env.example` → `.env` (gitignored). Key vars: `SQLALCHEMY_DATABASE_URL`
 ## Adding a feature
 
 Add ORM models to `src/models.py`, schemas to `src/schemas.py`, a router under `src/routers/` (and `app.include_router(...)` it in `src/main.py`), then autogenerate a migration that chains off the `pgvector` base. Keep imports flat (see above).
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues on `SiddharthMuramkar/xts`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the five default triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
