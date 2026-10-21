@@ -1,8 +1,6 @@
 """enable pgvector extension
 
-This is the clean base migration after the schema reset. Its only job is to
-enable the pgvector extension; the previous application-table migrations were
-removed. New schema migrations should chain off this revision.
+Base migration: enables the pgvector extension. New migrations chain off it.
 
 Revision ID: c3e7f1a2b4d6
 Revises: (base)

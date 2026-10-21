@@ -21,6 +21,7 @@ __pycache__/
 .vscode/
 
 # Docs not needed at runtime
-README.md
+SPEC.md
+.claude/
 CLAUDE.md
 docs/

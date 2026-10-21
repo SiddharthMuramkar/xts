@@ -78,7 +78,7 @@ Review the **current uncommitted changes** — both staged and unstaged.
   dependency-override pattern in `tests/conftest.py`. Note Postgres-specific
   behavior is not exercised by these SQLite tests.
 - **Infra consistency.** Docker, `entrypoint.sh`, Alembic, and `.env` changes
-  must stay consistent with the README and `CLAUDE.md`.
+  must stay consistent with `CLAUDE.md`.
 
 ## General checklist
 
